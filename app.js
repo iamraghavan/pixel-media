@@ -14,13 +14,8 @@ import 'dotenv/config';
 
 const app = express();
 
-const corsOptions = {
-  // Be more flexible with CORS for a token-based approach
-  origin: process.env.FRONTEND_URL || '*', 
-  credentials: false // We are not using cookies, so this can be false
-};
-
-app.use(cors(corsOptions));
+// As requested, updated CORS to allow all origins to fix the trailing slash issue.
+app.use(cors({ origin: '*' }));
 
 // IMPORTANT: The webhook route needs the raw body, so we apply its parser first.
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
