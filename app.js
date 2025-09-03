@@ -8,7 +8,7 @@ import swaggerSpec from './swaggerConfig.js';
 import authRoutes from './routes/auth.js';
 import mediaRoutes from './routes/media.js';
 import webhookRoutes from './routes/webhooks.js';
-import githubRoutes from './routes/github.js'; // Import new GitHub routes
+import githubRoutes from './routes/github.js';
 import { logErrors, errorHandler } from './middleware/error.js';
 import 'dotenv/config';
 
@@ -20,6 +20,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// IMPORTANT: The webhook route needs the raw body, so we apply its parser first.
+// It must come before the global express.json() middleware.
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
+// Global JSON parser for all other routes
 app.use(express.json());
 
 app.use(session({
@@ -43,8 +49,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
-app.use('/api/webhooks', webhookRoutes);
-app.use('/api/github', githubRoutes); // Add new GitHub routes
+app.use('/api/github', githubRoutes);
 
 app.use(logErrors);
 app.use(errorHandler);

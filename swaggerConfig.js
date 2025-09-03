@@ -2,6 +2,8 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import 'dotenv/config';
 
+const serverUrl = (process.env.SERVER_URL || 'http://localhost:8080').replace(/\/$/, '');
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -17,7 +19,7 @@ const options = {
     },
     servers: [
       {
-        url: process.env.SERVER_URL || 'http://localhost:8080',
+        url: serverUrl,
         description: 'Development Server',
       },
     ],

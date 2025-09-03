@@ -1,23 +1,121 @@
 
 tags:
   - name: Webhooks
-    description: GitHub webhook integration
+    description: Endpoints for receiving notifications from external services like GitHub.
 
 paths:
   /api/webhooks/github:
     post:
-      summary: GitHub Webhook Handler
+      summary: Receive GitHub Webhook Events
       tags: [Webhooks]
-      description: Receives webhook events from GitHub and logs the payload.
+      description: |
+        This endpoint is designed to receive `push` events from a configured GitHub repository. 
+        It must be secured by a secret, which is used to validate the `X-Hub-Signature-256` header.
+        When a user pushes changes to a tracked repository, GitHub sends a POST request here. 
+        The server can then use this data to trigger actions, such as clearing a cache or logging the update.
+      parameters:
+        - in: header
+          name: X-Hub-Signature-256
+          required: true
+          schema:
+            type: string
+          description: >
+            The HMAC hex digest of the request body. This is used to verify that the
+            webhook request is genuinely from GitHub. It is calculated using the
+            `WEBHOOK_SECRET` environment variable as the key and the request body as the message.
+            The format is `sha256=<signature>`.
+        - in: header
+          name: X-GitHub-Event
+          required: true
+          schema:
+            type: string
+          description: The name of the event that triggered the webhook. For our purposes, this will typically be `push`.
       requestBody:
-        description: Payload of the GitHub webhook event.
+        description: The payload sent by GitHub. The structure depends on the event type.
         required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/GitHubPushEvent'
       responses:
         '200':
-          description: Webhook received successfully.
+          description: Webhook received and processed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
         '400':
-          description: No payload received.
+          description: Bad Request. The required headers are missing.
+        '401':
+          description: Unauthorized. The `X-Hub-Signature-256` is invalid, indicating the request is not from GitHub.
+        '500':
+          description: Internal Server Error. Failed to process the webhook.
+
+components:
+  schemas:
+    GitHubPushEvent:
+      type: object
+      properties:
+        ref:
+          type: string
+          description: The full Git ref that was pushed. E.g., `refs/heads/main`.
+          example: refs/heads/main
+        before:
+          type: string
+          description: The SHA of the most recent commit on `ref` before the push.
+          example: 'a10867b14bb761a232cd80139fbd4c0d33264240'
+        after:
+          type: string
+          description: The SHA of the most recent commit on `ref` after the push.
+          example: '6113728f27ae82c7b1a177c8d03f9e96e0adf246'
+        repository:
+          type: object
+          properties:
+            name:
+              type: string
+              example: 'my-awesome-repo'
+            full_name:
+              type: string
+              example: 'iamraghavan/my-awesome-repo'
+            owner:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: 'iamraghavan'
+        pusher:
+          type: object
+          properties:
+            name:
+              type: string
+              example: 'iamraghavan'
+            email:
+              type: string
+              example: 'raghavan@example.com'
+        head_commit:
+          type: object
+          description: The most recent commit on `ref` after the push.
+          properties:
+            id:
+              type: string
+              example: '6113728f27ae82c7b1a177c8d03f9e96e0adf246'
+            message:
+              type: string
+              example: 'Update README.md'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2021-09-29T15:30:00Z'
+            author:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: 'Raghavan'
+                email:
+                  type: string
+                  example: 'raghavan@example.com'
