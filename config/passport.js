@@ -9,10 +9,13 @@ if (!process.env.SERVER_URL) {
   throw new Error('SERVER_URL environment variable is not set.');
 }
 
+// Normalize the server URL to remove any trailing slashes
+const serverUrl = process.env.SERVER_URL.replace(/\/$/, '');
+
 passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL}/api/auth/github/callback`,
+    callbackURL: `${serverUrl}/api/auth/github/callback`,
     scope: [ 'repo' ], 
   },
   async (accessToken, refreshToken, profile, done) => {
