@@ -1,0 +1,141 @@
+
+tags:
+  - name: GitHub
+    description: API for interacting with GitHub repository contents
+
+paths:
+  /api/github/repos/{owner}/{repo}/contents/{path}:
+    get:
+      summary: View Repository Contents
+      tags: [GitHub]
+      description: Lists the files and folders within a specific path in a user's authorized repository. Use this to navigate the repo structure and get the 'sha' of files required for updates or deletions.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+          description: The repository owner's username.
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+          description: The repository name.
+        - in: path
+          name: path
+          required: false
+          schema:
+            type: string
+          description: The path to the file or directory. For the root, provide an empty path.
+      responses:
+        '200':
+          description: Successfully retrieved contents.
+        '500':
+          description: Error fetching repository contents.
+
+    post:
+      summary: Upload or Update an Asset
+      tags: [GitHub]
+      description: |
+        Creates a new file or updates an existing one. This is the primary endpoint for uploading assets.
+        ### How it works:
+        - **Asset Content:** Your frontend must read the file, convert it to a **base64 encoded string**, and send that in the `content` field.
+        - **Creating a new file (Upload):** Omit the `sha` property in the request body.
+        - **Updating an existing file:** You **MUST** provide the `sha` of the file being replaced. Get this value from the `GET` endpoint.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+          description: The repository owner's username.
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+          description: The repository name.
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+          description: The full path for the file (e.g., `assets/images/new-image.png`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - content
+              properties:
+                message:
+                  type: string
+                  description: The commit message.
+                content:
+                  type: string
+                  description: The file content, encoded in base64.
+                sha:
+                  type: string
+                  description: The blob SHA of the file being replaced. Required for updates, omitted for new files.
+      responses:
+        '200':
+          description: File updated successfully.
+        '201':
+          description: File created successfully.
+        '500':
+          description: Error creating or updating file.
+
+    delete:
+      summary: Delete an Asset
+      tags: [GitHub]
+      description: Deletes a file from a repository. To use this, you must provide the `sha` of the file you wish to delete, which can be retrieved from the `GET` endpoint.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+          description: The repository owner's username.
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+          description: The repository name.
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+          description: The path to the file to delete.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - sha
+              properties:
+                message:
+                  type: string
+                  description: The commit message for the deletion.
+                sha:
+                  type: string
+                  description: The blob SHA of the file being deleted. Get this from the GET endpoint.
+      responses:
+        '200':
+          description: File deleted successfully.
+        '500':
+          description: Error deleting file.

@@ -1,0 +1,70 @@
+
+tags:
+  - name: Auth
+    description: User authentication and session management
+
+paths:
+  /api/auth/github:
+    get:
+      summary: Initiate GitHub Authentication
+      tags: [Auth]
+      description: Redirects the user to GitHub to authorize the application. This is the starting point for the login process.
+      responses:
+        '302':
+          description: Redirect to GitHub's OAuth authorization page.
+
+  /api/auth/github/callback:
+    get:
+      summary: GitHub Authentication Callback
+      tags: [Auth]
+      description: This endpoint is used by GitHub to redirect the user back after authentication. It handles the success or failure of the login attempt.
+      responses:
+        '302':
+          description: Redirect to the frontend application.
+
+  /api/auth/me:
+    get:
+      summary: Check Authentication Status
+      tags: [Auth]
+      description: Retrieves the profile of the currently authenticated user.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Authenticated user's profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated.
+
+  /api/auth/logout:
+    get:
+      summary: Log Out User
+      tags: [Auth]
+      description: Clears the user session and logs them out.
+      security:
+        - cookieAuth: []
+      responses:
+        '302':
+          description: Redirects to the frontend login page.
+
+  /api/auth/github/repos:
+    get:
+      summary: Fetch GitHub Repositories
+      tags: [Auth]
+      description: Fetches the list of repositories for the authenticated user from GitHub.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: A list of the user's GitHub repositories.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Not authenticated.

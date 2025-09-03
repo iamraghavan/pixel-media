@@ -1,0 +1,23 @@
+
+tags:
+  - name: Webhooks
+    description: GitHub webhook integration
+
+paths:
+  /api/webhooks/github:
+    post:
+      summary: GitHub Webhook Handler
+      tags: [Webhooks]
+      description: Receives webhook events from GitHub and logs the payload.
+      requestBody:
+        description: Payload of the GitHub webhook event.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook received successfully.
+        '400':
+          description: No payload received.

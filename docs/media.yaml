@@ -1,0 +1,25 @@
+
+tags:
+  - name: Media
+    description: Media handling and uploads
+
+paths:
+  /api/media/upload:
+    post:
+      summary: Upload a Media File
+      tags: [Media]
+      description: Uploads a media file. This endpoint is a placeholder and needs to be connected to a storage service (e.g., Cloud Storage, S3).
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                media:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Media file uploaded successfully (placeholder response).
