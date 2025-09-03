@@ -1,7 +1,6 @@
 
 import express from 'express';
-import session from 'express-session';
-import passport from './config/passport.js';
+import passport from './config/passport.js'; // Still needed for GitHub strategy
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swaggerConfig.js';
@@ -9,42 +8,33 @@ import authRoutes from './routes/auth.js';
 import mediaRoutes from './routes/media.js';
 import webhookRoutes from './routes/webhooks.js';
 import githubRoutes from './routes/github.js';
+import pingRoutes from './routes/ping.js'; // Import the new ping route
 import { logErrors, errorHandler } from './middleware/error.js';
 import 'dotenv/config';
 
 const app = express();
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000', 
-  credentials: true, 
+  // Be more flexible with CORS for a token-based approach
+  origin: process.env.FRONTEND_URL || '*', 
+  credentials: false // We are not using cookies, so this can be false
 };
 
 app.use(cors(corsOptions));
 
 // IMPORTANT: The webhook route needs the raw body, so we apply its parser first.
-// It must come before the global express.json() middleware.
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
 
 // Global JSON parser for all other routes
 app.use(express.json());
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  proxy: true, 
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
-    httpOnly: true,
-    sameSite: 'none' 
-  }
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(passport.initialize()); // Still needed to initialize the GitHub strategy
 
 // API Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Keep-alive route
+app.use('/api/ping', pingRoutes); // Add the ping route
 
 // API Routes
 app.use('/api/auth', authRoutes);

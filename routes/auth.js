@@ -1,50 +1,56 @@
 
 import express from 'express';
 import passport from 'passport';
-import { Octokit } from '@octokit/rest';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+// Step 1: User initiates login
 router.get('/github', passport.authenticate('github', { scope: ['repo', 'user:email'] }));
 
-router.get('/github/callback', 
-  passport.authenticate('github', { failureRedirect: '/' }),
+// Step 2: GitHub redirects back to us
+router.get('/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login', session: false }), // We will not be using sessions
   (req, res) => {
-    res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
+    // At this point, passport has successfully authenticated the user and `req.user` is available.
+
+    // Step 3: Generate a JWT
+    const token = jwt.sign(
+      { id: req.user.id, username: req.user.username }, 
+      process.env.SESSION_SECRET, // Re-using SESSION_SECRET as our JWT secret. Ensure it's strong!
+      { expiresIn: '1h' } // Token will be valid for 1 hour
+    );
+
+    // Step 4: Redirect to the frontend, passing the token in the URL
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
 );
 
+// Step 5: Frontend uses this to verify its stored token and get user info
 router.get('/me', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json(req.user);
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
+  // This is now a protected route that requires a token
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Not authenticated: No token provided.' });
   }
-});
 
-router.get('/logout', (req, res, next) => {
-  req.logout(function(err) {
-    if (err) { return next(err); }
-    req.session.destroy(() => {
-      res.clearCookie('connect.sid');
-      res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
-    });
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, process.env.SESSION_SECRET, (err, user) => {
+    if (err) {
+      return res.status(401).json({ message: 'Not authenticated: Invalid token.' });
+    }
+    // Here you could fetch the full user profile from the database if needed
+    res.json(user);
   });
 });
 
-router.get('/github/repos', async (req, res) => {
-    if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    try {
-        const octokit = new Octokit({ auth: req.user.accessToken });
-        const { data } = await octokit.repos.listForAuthenticatedUser();
-        res.json(data);
-    } catch (error) {
-        console.error('Error fetching repos:', error);
-        res.status(500).json({ error: 'Failed to fetch repositories' });
-    }
+// Step 6: Logout is now a frontend responsibility (just delete the token)
+router.get('/logout', (req, res) => {
+  // This route is now effectively stateless. 
+  // The frontend should redirect to the login page after clearing the token.
+  res.status(200).json({ message: 'Logout successful. Please clear token on client-side.' });
 });
 
 export default router;
